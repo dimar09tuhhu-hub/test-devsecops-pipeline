@@ -1,0 +1,21 @@
+{
+  "name": "belajar-devsecops-pipeline",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000B\u0000e\u0000l\u0000a\u0000j\u0000a\u0000r\u0000 \u0000D\u0000e\u0000v\u0000S\u0000e\u0000c\u0000O\u0000p\u0000s\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimar09tuhhu-hub/belajar-devsecops-pipeline.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dimar09tuhhu-hub/belajar-devsecops-pipeline/issues"
+  },
+  "homepage": "https://github.com/dimar09tuhhu-hub/belajar-devsecops-pipeline#readme"
+}
