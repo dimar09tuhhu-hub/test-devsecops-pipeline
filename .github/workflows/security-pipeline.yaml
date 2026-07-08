@@ -30,4 +30,4 @@ jobs:
 
       - name: Run Semgrep scan
         run: |
-          docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan --config=auto
+          docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan --config=auto --error
