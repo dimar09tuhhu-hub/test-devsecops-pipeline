@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   gitleaks:
@@ -31,3 +32,30 @@ jobs:
       - name: Run Semgrep scan
         run: |
           docker run --rm -v "${{ github.workspace }}:/src" returntocorp/semgrep semgrep scan --config=auto --error
+
+  sca:
+    name: Dependency Scan (NPM Audit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run NPM Audit
+        run: |
+          npm audit --audit-level=high
+
+  build-and-test:
+    name: Build & Test (Security Gate)
+    runs-on: ubuntu-latest
+    needs: [gitleaks, semgrep, sca] # Hanya berjalan jika Gitleaks, Semgrep, dan SCA sukses (hijau)
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Simulate Build and Test
+        run: |
+          echo "🎉 SENSOR KEAMANAN SELESAI & AMAN!"
+          echo "Memulai proses instalasi dependensi..."
+          npm ci
+          echo "Melakukan kompilasi dan testing aplikasi..."
+          echo "Aplikasi siap untuk dideploy!"
