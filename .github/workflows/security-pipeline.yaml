@@ -42,9 +42,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run NPM Audit
+      - name: Run NPM Audit (Backend)
         run: |
           npm audit --audit-level=high
+
+      - name: Run NPM Audit (Frontend)
+        run: |
+          cd frontend && npm audit --audit-level=high
 
   build-and-test:
     name: Build & Test (Security Gate)

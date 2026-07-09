@@ -1,0 +1,9 @@
+{
+  "name": "frontend-dummy",
+  "version": "1.0.0",
+  "description": "Dummy frontend with vulnerable packages",
+  "main": "index.js",
+  "dependencies": {
+    "lodash": "4.17.15"
+  }
+}
