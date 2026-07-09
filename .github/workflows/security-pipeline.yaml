@@ -24,7 +24,7 @@ jobs:
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         with:
-          log-opts: --all
+          args: detect --source . --verbose --redact --no-git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Semgrep scan
         run: |
-          semgrep scan --config=auto --sarif --output=semgrep.sarif
+          semgrep scan --config=auto --error --sarif --output=semgrep.sarif
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
