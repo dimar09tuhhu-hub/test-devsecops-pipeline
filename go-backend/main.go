@@ -17,10 +17,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	username := r.URL.Query().Get("username")
 
-	// 🔴 SANGAT BERBAHAYA: Menggabungkan input langsung (string concatenation) ke dalam query SQL.
-	// Ini menimbulkan celah keamanan SQL Injection yang akan dideteksi oleh Semgrep.
-	query := fmt.Sprintf("SELECT id, name FROM users WHERE username = '%s'", username)
-	rows, err := db.Query(query)
+	// ✅ AMAN: Menggunakan Parameterized Query untuk mencegah SQL Injection
+	rows, err := db.Query("SELECT id, name FROM users WHERE username = ?", username)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
