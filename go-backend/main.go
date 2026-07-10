@@ -4,11 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	dsn := os.Getenv("DB_DSN")
+	if dsn == "" {
+		dsn = "root@tcp(127.0.0.1:3306)/dbname"
+	}
+	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
