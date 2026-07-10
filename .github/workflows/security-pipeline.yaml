@@ -43,7 +43,7 @@ jobs:
         uses: semgrep/semgrep-action@v1
         with:
           config: auto
-          sarif: true
+          generateSarif: "1"
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
