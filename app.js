@@ -47,9 +47,9 @@ app.get('/run', (req, res) => {
 
     try {
         const result = safeEval(code);
-        res.send(`Hasil evaluasi: ${result}`);
+        res.json({ status: "success", result: result });
     } catch (error) {
-        res.status(400).send(`Error: ${error.message}`);
+        res.status(400).json({ status: "error", message: error.message });
     }
 });
 

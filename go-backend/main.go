@@ -11,7 +11,7 @@ import (
 func handler(w http.ResponseWriter, r *http.Request) {
 	dsn := os.Getenv("DB_DSN")
 	if dsn == "" {
-		dsn = "root@tcp(127.0.0.1:3306)/dbname"
+		dsn = "localhost/dbname"
 	}
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
