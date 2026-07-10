@@ -92,7 +92,7 @@ jobs:
       - name: Run Govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          cd go-backend && govulncheck -format sarif ./... > ../govulncheck.sarif || true
+          cd go-backend && govulncheck -format sarif ./... > ../govulncheck.sarif
 
       - name: Upload Govulncheck SARIF report
         uses: github/codeql-action/upload-sarif@v3
