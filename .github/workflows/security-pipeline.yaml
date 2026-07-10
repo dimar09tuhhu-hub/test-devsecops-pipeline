@@ -35,15 +35,15 @@ jobs:
       security-events: write
       actions: read
       contents: read
-    container:
-      image: returntocorp/semgrep
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Run Semgrep scan
-        run: |
-          semgrep scan --config=auto --error --sarif --output=semgrep.sarif
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: auto
+          sarif: true
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
@@ -87,7 +87,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.0'
+          go-version: '1.26.x'
 
       - name: Run Govulncheck
         run: |
