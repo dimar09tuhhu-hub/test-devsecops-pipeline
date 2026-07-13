@@ -125,6 +125,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Verify Secret Lengths (Safe Check)
+        run: |
+          echo "Username length: ${#USER_VAL}"
+          echo "Token length: ${#TOKEN_VAL}"
+        env:
+          USER_VAL: ${{ secrets.DOCKERHUB_USERNAME }}
+          TOKEN_VAL: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
