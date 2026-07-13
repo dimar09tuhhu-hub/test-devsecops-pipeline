@@ -7,10 +7,6 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Tambahkan baris di bawah ini untuk melewati blokir Node 20 pada runner
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
 jobs:
   gitleaks:
     name: Secrets Scan (Gitleaks)
@@ -149,5 +145,3 @@ jobs:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
           only-severities: critical,high
           exit-code: true # Menggagalkan pipeline jika terdeteksi celah HIGH atau CRITICAL
-
-
