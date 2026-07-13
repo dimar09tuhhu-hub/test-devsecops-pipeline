@@ -146,6 +146,19 @@ jobs:
           load: true # Memuat image ke daemon runner lokal
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
 
+      - name: Generate SBOM using Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
+          format: spdx-json
+          output-file: my-app-sbom.spdx.json
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-report
+          path: my-app-sbom.spdx.json
+
       - name: Run Docker Scout Scan
         uses: docker/scout-action@v1
         with:
@@ -153,3 +166,4 @@ jobs:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
           only-severities: critical,high
           exit-code: true # Menggagalkan pipeline jika terdeteksi celah HIGH atau CRITICAL
+
