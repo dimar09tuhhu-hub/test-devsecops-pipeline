@@ -132,7 +132,7 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.dimar09 }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
@@ -149,3 +149,5 @@ jobs:
           image: ${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
           only-severities: critical,high
           exit-code: true # Menggagalkan pipeline jika terdeteksi celah HIGH atau CRITICAL
+
+
