@@ -145,7 +145,7 @@ jobs:
       - name: Run Grype Vulnerability Scan
         uses: anchore/scan-action@v3
         with:
-          image: "my-app:latest"
+          sbom: "my-app-sbom.spdx.json"
           fail-build: true
           severity-cutoff: high
 
