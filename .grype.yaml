@@ -1,0 +1,10 @@
+# .grype.yaml
+# Konfigurasi pengecualian (whitelisting) kerentanan untuk Grype.
+# File ini dibaca secara otomatis oleh Grype CLI lokal maupun di GitHub Actions.
+
+ignore:
+  - vulnerability: CVE-2023-45853
+    reason: "Celah keamanan ini tidak dapat dieksploitasi karena fungsi zip extraction tidak diaktifkan di production."
+
+  - vulnerability: CVE-2022-24999
+    reason: "Belum ada perbaikan (fix) resmi dari upstream, sudah ditinjau oleh tim keamanan."
