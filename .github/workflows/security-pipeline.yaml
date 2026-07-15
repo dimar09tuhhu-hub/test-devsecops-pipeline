@@ -166,8 +166,12 @@ jobs:
           SBOM_FILE="my-app-sbom.spdx.json"
           JSON_FILE="grype-results.json"
 
+          # Install grype binary locally to avoid command not found errors
+          mkdir -p ./bin-tools
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b ./bin-tools
+
           # Run Grype locally on the SBOM to produce a simple, clean JSON report
-          grype sbom:"$SBOM_FILE" -o json > "$JSON_FILE"
+          ./bin-tools/grype sbom:"$SBOM_FILE" -o json > "$JSON_FILE"
 
           echo "### 🔎 Grype Vulnerability Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
