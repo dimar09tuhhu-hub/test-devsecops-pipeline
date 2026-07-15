@@ -163,32 +163,28 @@ jobs:
       - name: Generate Grype & SBOM Markdown Summary
         if: always()
         run: |
-          SARIF_FILE="${{ steps.grype-scan.outputs.sarif }}"
           SBOM_FILE="my-app-sbom.spdx.json"
+          JSON_FILE="grype-results.json"
+
+          # Run Grype locally on the SBOM to produce a simple, clean JSON report
+          grype sbom:"$SBOM_FILE" -o json > "$JSON_FILE"
 
           echo "### 🔎 Grype Vulnerability Scan Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "$SARIF_FILE" ]; then
-            CRITICAL=$(jq '[.runs[0].results[] | select(.properties.severity == "Critical")] | length' "$SARIF_FILE")
-            HIGH=$(jq '[.runs[0].results[] | select(.properties.severity == "High")] | length' "$SARIF_FILE")
-            MEDIUM=$(jq '[.runs[0].results[] | select(.properties.severity == "Medium")] | length' "$SARIF_FILE")
-            LOW=$(jq '[.runs[0].results[] | select(.properties.severity == "Low")] | length' "$SARIF_FILE")
-            NEGLIGIBLE=$(jq '[.runs[0].results[] | select(.properties.severity == "Negligible")] | length' "$SARIF_FILE")
-            UNKNOWN=$(jq '[.runs[0].results[] | select(.properties.severity == "Unknown")] | length' "$SARIF_FILE")
-            
-            TOTAL=$((CRITICAL + HIGH + MEDIUM + LOW + NEGLIGIBLE + UNKNOWN))
-
+          if [ -s "$JSON_FILE" ]; then
+            TOTAL=$(jq '[.matches[]?] | length' "$JSON_FILE")
             echo "#### 🖼️ Container Image Scan" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
             echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-            echo "| **🔴 CRITICAL** | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
-            echo "| **🟠 HIGH** | $HIGH |" >> $GITHUB_STEP_SUMMARY
-            echo "| **🟡 MEDIUM** | $MEDIUM |" >> $GITHUB_STEP_SUMMARY
-            echo "| **🔵 LOW** | $LOW |" >> $GITHUB_STEP_SUMMARY
-            echo "| **⚪ NEGLIGIBLE** | $NEGLIGIBLE |" >> $GITHUB_STEP_SUMMARY
-            echo "| **❓ UNKNOWN** | $UNKNOWN |" >> $GITHUB_STEP_SUMMARY
+
+            for sev in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+              count=$(jq --arg sev "$sev" '[.matches[]? | select(.vulnerability.severity | ascii_upcase == $sev)] | length' "$JSON_FILE")
+              if [ "$count" -gt 0 ]; then
+                echo "| $sev | $count |" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Total: $TOTAL vulnerabilities**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -197,32 +193,23 @@ jobs:
               echo "<details>" >> $GITHUB_STEP_SUMMARY
               echo "<summary>Lihat detail CVE (maks 50 baris pertama)</summary>" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "| No | Severity | Package / Path | Vulnerability | Description |" >> $GITHUB_STEP_SUMMARY
-              echo "| --- | --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
+              echo "| No | Severity | Package | Version | Vulnerability | Description |" >> $GITHUB_STEP_SUMMARY
+              echo "| --- | --- | --- | --- | --- | --- |" >> $GITHUB_STEP_SUMMARY
 
-              # Map rules to helpUri for external links
+              # detailed findings
               jq -r '
-                .runs[0] as $run
-                | ($run.tool.driver.rules // [] | map({key: .id, value: .helpUri}) | from_entries) as $rule_uris
-                | $run.results
-                | sort_by(
-                    if .properties.severity == "Critical" then 0
-                    elif .properties.severity == "High" then 1
-                    elif .properties.severity == "Medium" then 2
-                    elif .properties.severity == "Low" then 3
-                    elif .properties.severity == "Negligible" then 4
-                    else 5 end
-                  )
+                [.matches[]?]
+                | sort_by(.vulnerability.severity as $s | ({"CRITICAL":0,"HIGH":1,"MEDIUM":2,"LOW":3,"UNKNOWN":4}[$s | ascii_upcase] // 5))
                 | limit(50; .[])
                 | [
-                    .properties.severity,
-                    (.locations[0].physicalLocation.artifactLocation.uri // "-"),
-                    .ruleId,
-                    ($rule_uris[.ruleId] // "https://nvd.nist.gov/vuln/detail/" + .ruleId),
-                    (.message.text // "" | gsub("\n"; " ") | gsub("\t"; " ") | gsub("\\|"; "\\|"))
+                    (.vulnerability.severity | ascii_upcase),
+                    .artifact.name,
+                    .artifact.version,
+                    .vulnerability.id,
+                    (.vulnerability.description // "" | gsub("\n"; " ") | gsub("\t"; " ") | gsub("\\|"; "\\|"))
                   ]
                 | @tsv
-              ' "$SARIF_FILE" | awk -F'\t' '{print "| " NR " | " $1 " | " $2 " | [" $3 "](" $4 ") | " $5 " |"}' >> $GITHUB_STEP_SUMMARY
+              ' "$JSON_FILE" | awk -F'\t' '{print "| " NR " | " $1 " | " $2 " | " $3 " | [" $4 "](https://nvd.nist.gov/vuln/detail/" $4 ") | " $5 " |"}' >> $GITHUB_STEP_SUMMARY
 
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "</details>" >> $GITHUB_STEP_SUMMARY
@@ -230,14 +217,14 @@ jobs:
               echo "No vulnerabilities found ✅" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "❌ Gagal memuat laporan Grype (file SARIF tidak ditemukan)." >> $GITHUB_STEP_SUMMARY
+            echo "❌ Gagal memuat laporan Grype (file JSON tidak ditemukan)." >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 SBOM Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "$SBOM_FILE" ]; then
+          if [ -s "$SBOM_FILE" ]; then
             TOTAL_COMPONENTS=$(jq '.packages | length' "$SBOM_FILE")
             echo "**Total components: $TOTAL_COMPONENTS**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -280,6 +267,7 @@ jobs:
           else
             echo "❌ Gagal memuat SBOM (file SPDX JSON tidak ditemukan)." >> $GITHUB_STEP_SUMMARY
           fi
+
 
 
 
