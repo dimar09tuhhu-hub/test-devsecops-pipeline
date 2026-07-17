@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 
 // AWS_ACCESS_KEY_ID dummy untuk memicu deteksi Gitleaks (Secrets Leak)
-const FAKE_AWS_KEY = "AKIAIOSFODNN7EXAMPLE";
+const FAKE_AWS_KEY = "AKIA1234567890ABCDEF";
 
 // Fungsi evaluator matematika sederhana yang aman tanpa eval() / Function()
 function safeEval(expr) {
