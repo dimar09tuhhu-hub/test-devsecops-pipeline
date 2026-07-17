@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/text/language"
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Memanggil fungsi dari paket rentan (golang.org/x/text) untuk memicu govulncheck
+	_, _ = language.Parse("en-US")
+
 	http.HandleFunc("/user", handler)
 	fmt.Println("Server berjalan di port 8080...")
 	_ = http.ListenAndServe(":8080", nil)
