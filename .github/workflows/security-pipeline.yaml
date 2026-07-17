@@ -23,18 +23,27 @@ jobs:
         run: |
           docker build -t my-app:latest .
 
-      - name: Generate SBOM using Syft
+      - name: Generate SBOM using Syft (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
           image: "my-app:latest"
           format: cyclonedx-json
           output-file: my-app-sbom.cdx.json
 
-      - name: Upload SBOM Artifact
+      - name: Generate SBOM using Syft (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: "my-app:latest"
+          format: spdx-json
+          output-file: my-app-sbom.spdx.json
+
+      - name: Upload SBOM Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sbom-report
-          path: my-app-sbom.cdx.json
+          name: sbom-reports
+          path: |
+            my-app-sbom.cdx.json
+            my-app-sbom.spdx.json
 
       - name: Run Grype Vulnerability Scan
         uses: anchore/scan-action@v6
@@ -118,9 +127,17 @@ jobs:
           echo "### 📦 SBOM Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          SPDX_FILE="my-app-sbom.spdx.json"
+          if [ -s "$SPDX_FILE" ] && [ -s "$SBOM_FILE" ]; then
+            TOTAL_CDX=$(jq '.components | length' "$SBOM_FILE")
+            TOTAL_SPDX=$(jq '.packages | length' "$SPDX_FILE")
+            echo "- **Total components (CycloneDX):** $TOTAL_CDX" >> $GITHUB_STEP_SUMMARY
+            echo "- **Total components (SPDX):** $TOTAL_SPDX" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
           if [ -s "$SBOM_FILE" ]; then
-            TOTAL_COMPONENTS=$(jq '.components | length' "$SBOM_FILE")
-            echo "**Total components (CycloneDX): $TOTAL_COMPONENTS**" >> $GITHUB_STEP_SUMMARY
+            echo "#### 📋 CycloneDX Components Details" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Type | Count |" >> $GITHUB_STEP_SUMMARY
             echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
