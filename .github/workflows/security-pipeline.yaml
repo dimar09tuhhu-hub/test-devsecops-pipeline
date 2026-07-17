@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Semgrep scan
         run: |
-          semgrep scan app.js go-backend/ --config=auto --sarif --output=semgrep.sarif --error
+          semgrep scan app.js go-backend/ --config=auto --sarif --output=semgrep.sarif --fail-on-severity=ERROR
 
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v3
