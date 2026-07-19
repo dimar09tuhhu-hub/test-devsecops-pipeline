@@ -59,22 +59,29 @@ jobs:
 
           echo "🚀 Mengunggah CycloneDX SBOM ke Dependency-Track (${DTRACK_URL})..."
           if [ -n "$PROJECT_UUID" ]; then
-            curl -s -X POST "${DTRACK_URL}/api/v1/bom" \
+            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${DTRACK_URL}/api/v1/bom" \
               -H "X-API-Key: ${DTRACK_API_KEY}" \
+              -H "ngrok-skip-browser-warning: true" \
+              -H "User-Agent: curl/7.68.0" \
               -H "Content-Type: multipart/form-data" \
               -F "project=${PROJECT_UUID}" \
-              -F "bom=@my-app-sbom.cdx.json"
+              -F "bom=@my-app-sbom.cdx.json")
           else
-            curl -s -X POST "${DTRACK_URL}/api/v1/bom" \
+            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${DTRACK_URL}/api/v1/bom" \
               -H "X-API-Key: ${DTRACK_API_KEY}" \
+              -H "ngrok-skip-browser-warning: true" \
+              -H "User-Agent: curl/7.68.0" \
               -H "Content-Type: multipart/form-data" \
               -F "autoCreate=true" \
               -F "projectName=${{ github.event.repository.name }}" \
               -F "projectVersion=${{ github.ref_name }}" \
-              -F "bom=@my-app-sbom.cdx.json"
+              -F "bom=@my-app-sbom.cdx.json")
           fi
+          
+          echo "Hasil Respon API:"
+          echo "$RESPONSE"
           echo ""
-          echo "✅ Upload CycloneDX SBOM ke Dependency-Track selesai!"
+          echo "✅ Process Upload SBOM Selesai!"
 
 
       - name: Run Grype Vulnerability Scan
