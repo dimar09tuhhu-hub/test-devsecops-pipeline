@@ -45,6 +45,38 @@ jobs:
             my-app-sbom.cdx.json
             my-app-sbom.spdx.json
 
+      - name: Upload CycloneDX SBOM to OWASP Dependency-Track
+        if: always()
+        env:
+          DTRACK_URL: ${{ secrets.DTRACK_URL }}
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+          PROJECT_UUID: ${{ secrets.DTRACK_PROJECT_UUID }}
+        run: |
+          if [ -z "$DTRACK_URL" ] || [ -z "$DTRACK_API_KEY" ]; then
+            echo "⚠️ DTRACK_URL atau DTRACK_API_KEY belum di-set di Secrets. Step upload Dependency-Track dilewati."
+            exit 0
+          fi
+
+          echo "🚀 Mengunggah CycloneDX SBOM ke Dependency-Track (${DTRACK_URL})..."
+          if [ -n "$PROJECT_UUID" ]; then
+            curl -s -X POST "${DTRACK_URL}/api/v1/bom" \
+              -H "X-API-Key: ${DTRACK_API_KEY}" \
+              -H "Content-Type: multipart/form-data" \
+              -F "project=${PROJECT_UUID}" \
+              -F "bom=@my-app-sbom.cdx.json"
+          else
+            curl -s -X POST "${DTRACK_URL}/api/v1/bom" \
+              -H "X-API-Key: ${DTRACK_API_KEY}" \
+              -H "Content-Type: multipart/form-data" \
+              -F "autoCreate=true" \
+              -F "projectName=${{ github.event.repository.name }}" \
+              -F "projectVersion=main" \
+              -F "bom=@my-app-sbom.cdx.json"
+          fi
+          echo ""
+          echo "✅ Upload CycloneDX SBOM ke Dependency-Track selesai!"
+
+
       - name: Run Grype Vulnerability Scan
         uses: anchore/scan-action@v6
         id: grype-scan
