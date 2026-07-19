@@ -57,9 +57,19 @@ jobs:
             exit 0
           fi
 
-          echo "🚀 Mengunggah CycloneDX SBOM ke Dependency-Track (${DTRACK_URL})..."
+          # Clean URL: strip whitespace and trailing slashes
+          CLEAN_URL=$(echo "$DTRACK_URL" | xargs | sed 's;/*$;;')
+
+          # Auto-prefix http/https if missing
+          if [[ "$CLEAN_URL" != http://* ]] && [[ "$CLEAN_URL" != https://* ]]; then
+            CLEAN_URL="https://${CLEAN_URL}"
+          fi
+
+          TARGET_ENDPOINT="${CLEAN_URL}/api/v1/bom"
+          echo "🚀 Mengunggah CycloneDX SBOM ke: ${TARGET_ENDPOINT}"
+
           if [ -n "$PROJECT_UUID" ]; then
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${DTRACK_URL}/api/v1/bom" \
+            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${TARGET_ENDPOINT}" \
               -H "X-API-Key: ${DTRACK_API_KEY}" \
               -H "ngrok-skip-browser-warning: true" \
               -H "User-Agent: curl/7.68.0" \
@@ -67,7 +77,7 @@ jobs:
               -F "project=${PROJECT_UUID}" \
               -F "bom=@my-app-sbom.cdx.json")
           else
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${DTRACK_URL}/api/v1/bom" \
+            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${TARGET_ENDPOINT}" \
               -H "X-API-Key: ${DTRACK_API_KEY}" \
               -H "ngrok-skip-browser-warning: true" \
               -H "User-Agent: curl/7.68.0" \
