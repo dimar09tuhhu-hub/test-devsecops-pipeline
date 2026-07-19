@@ -70,7 +70,7 @@ jobs:
               -H "Content-Type: multipart/form-data" \
               -F "autoCreate=true" \
               -F "projectName=${{ github.event.repository.name }}" \
-              -F "projectVersion=main" \
+              -F "projectVersion=${{ github.ref_name }}" \
               -F "bom=@my-app-sbom.cdx.json"
           fi
           echo ""
