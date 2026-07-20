@@ -73,6 +73,10 @@ jobs:
           TARGET_ENDPOINT="${CLEAN_URL}/api/v1/bom"
           echo "🚀 Mengunggah CycloneDX SBOM (JSON Base64) ke: ${TARGET_ENDPOINT}"
 
+          # Sanitize null bytes (0x00 and \u0000) from SBOM to prevent PostgreSQL UTF8 invalid byte sequence error
+          tr -d '\000' < my-app-sbom.cdx.json | sed 's/\\u0000//g' > my-app-sbom.cdx.clean.json
+          mv my-app-sbom.cdx.clean.json my-app-sbom.cdx.json
+
           # Encode SBOM file to Base64 (single line)
           BOM_BASE64=$(base64 -w 0 my-app-sbom.cdx.json | tr -d '\r\n')
           
