@@ -100,29 +100,19 @@ jobs:
           # Clean version name (replace slashes with dashes for clean UI routing)
           CLEAN_VERSION=$(echo "${{ github.ref_name }}" | sed 's;/;-;g')
 
-          # Generate payload.json using Python to avoid Linux CLI argument size limits (Argument list too long)
-          # and sanitize null bytes (0x00)
-          cat << 'EOF' > make_payload.py
-import base64, json, os
+          # Sanitize null bytes (0x00 and \u0000) and encode SBOM to base64 file
+          tr -d '\000' < my-app-sbom.cdx.json | sed 's/\\u0000//g' | base64 -w 0 | tr -d '\r\n' > sbom.b64
 
-with open("my-app-sbom.cdx.json", "rb") as f:
-    content = f.read().replace(b"\x00", b"").replace(b"\\u0000", b"")
+          # Stream construct payload.json to avoid CLI argument size limits and YAML editor syntax errors
+          if [ -n "$PROJECT_UUID" ]; then
+            printf '{"project":"%s","bom":"' "$PROJECT_UUID" > payload.json
+          else
+            printf '{"autoCreate":true,"projectName":"%s","projectVersion":"%s","bom":"' "${{ github.event.repository.name }}" "$CLEAN_VERSION" > payload.json
+          fi
 
-b64_str = base64.b64encode(content).decode("ascii")
-proj_uuid = os.environ.get("PROJECT_UUID", "").strip()
-repo_name = os.environ.get("REPO_NAME", "")
-version = os.environ.get("CLEAN_VERSION", "")
-
-if proj_uuid:
-    payload = {"project": proj_uuid, "bom": b64_str}
-else:
-    payload = {"autoCreate": True, "projectName": repo_name, "projectVersion": version, "bom": b64_str}
-
-with open("payload.json", "w", encoding="utf-8") as f:
-    json.dump(payload, f)
-EOF
-          REPO_NAME="${{ github.event.repository.name }}" CLEAN_VERSION="$CLEAN_VERSION" python3 make_payload.py
-          rm -f make_payload.py
+          cat sbom.b64 >> payload.json
+          printf '"}' >> payload.json
+          rm -f sbom.b64
 
           RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X PUT "${TARGET_ENDPOINT}" \
             -H "X-API-Key: ${DTRACK_API_KEY}" \
