@@ -97,32 +97,41 @@ jobs:
           TARGET_ENDPOINT="${CLEAN_URL}/api/v1/bom"
           echo "🚀 Mengunggah CycloneDX SBOM ke: ${TARGET_ENDPOINT}"
 
-          # Sanitize null bytes (0x00 and \u0000) from SBOM to prevent PostgreSQL UTF8 error
-          tr -d '\000' < my-app-sbom.cdx.json | sed 's/\\u0000//g' > my-app-sbom.cdx.clean.json
-          mv my-app-sbom.cdx.clean.json my-app-sbom.cdx.json
-
-          # Encode SBOM file to Base64 (single line)
-          BOM_BASE64=$(base64 -w 0 my-app-sbom.cdx.json | tr -d '\r\n')
-          
           # Clean version name (replace slashes with dashes for clean UI routing)
           CLEAN_VERSION=$(echo "${{ github.ref_name }}" | sed 's;/;-;g')
 
-          if [ -n "$PROJECT_UUID" ]; then
-            JSON_PAYLOAD=$(jq -n --arg proj "$PROJECT_UUID" --arg bom "$BOM_BASE64" '{project: $proj, bom: $bom}')
-          else
-            JSON_PAYLOAD=$(jq -n \
-              --arg name "${{ github.event.repository.name }}" \
-              --arg ver "$CLEAN_VERSION" \
-              --arg bom "$BOM_BASE64" \
-              '{autoCreate: true, projectName: $name, projectVersion: $ver, bom: $bom}')
-          fi
+          # Generate payload.json using Python to avoid Linux CLI argument size limits (Argument list too long)
+          # and sanitize null bytes (0x00)
+          cat << 'EOF' > make_payload.py
+import base64, json, os
+
+with open("my-app-sbom.cdx.json", "rb") as f:
+    content = f.read().replace(b"\x00", b"").replace(b"\\u0000", b"")
+
+b64_str = base64.b64encode(content).decode("ascii")
+proj_uuid = os.environ.get("PROJECT_UUID", "").strip()
+repo_name = os.environ.get("REPO_NAME", "")
+version = os.environ.get("CLEAN_VERSION", "")
+
+if proj_uuid:
+    payload = {"project": proj_uuid, "bom": b64_str}
+else:
+    payload = {"autoCreate": True, "projectName": repo_name, "projectVersion": version, "bom": b64_str}
+
+with open("payload.json", "w", encoding="utf-8") as f:
+    json.dump(payload, f)
+EOF
+          REPO_NAME="${{ github.event.repository.name }}" CLEAN_VERSION="$CLEAN_VERSION" python3 make_payload.py
+          rm -f make_payload.py
 
           RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X PUT "${TARGET_ENDPOINT}" \
             -H "X-API-Key: ${DTRACK_API_KEY}" \
             -H "ngrok-skip-browser-warning: true" \
             -H "User-Agent: curl/7.68.0" \
             -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD")
+            -d @payload.json)
+
+          rm -f payload.json
 
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
           BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
