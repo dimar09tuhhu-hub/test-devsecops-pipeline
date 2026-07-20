@@ -71,28 +71,31 @@ jobs:
           fi
 
           TARGET_ENDPOINT="${CLEAN_URL}/api/v1/bom"
-          echo "🚀 Mengunggah CycloneDX SBOM ke: ${TARGET_ENDPOINT}"
+          echo "🚀 Mengunggah CycloneDX SBOM (JSON Base64) ke: ${TARGET_ENDPOINT}"
+
+          # Encode SBOM file to Base64 (single line)
+          BOM_BASE64=$(base64 -w 0 my-app-sbom.cdx.json | tr -d '\r\n')
+          
+          # Clean version name (replace slashes with dashes for clean UI routing)
+          CLEAN_VERSION=$(echo "${{ github.ref_name }}" | sed 's;/;-;g')
 
           if [ -n "$PROJECT_UUID" ]; then
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${TARGET_ENDPOINT}" \
-              -H "X-API-Key: ${DTRACK_API_KEY}" \
-              -H "ngrok-skip-browser-warning: true" \
-              -H "User-Agent: curl/7.68.0" \
-              -H "Content-Type: multipart/form-data" \
-              -F "project=${PROJECT_UUID}" \
-              -F "bom=@my-app-sbom.cdx.json")
+            JSON_PAYLOAD=$(jq -n --arg proj "$PROJECT_UUID" --arg bom "$BOM_BASE64" '{project: $proj, bom: $bom}')
           else
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "${TARGET_ENDPOINT}" \
-              -H "X-API-Key: ${DTRACK_API_KEY}" \
-              -H "ngrok-skip-browser-warning: true" \
-              -H "User-Agent: curl/7.68.0" \
-              -H "Content-Type: multipart/form-data" \
-              -F "autoCreate=true" \
-              -F "projectName=${{ github.event.repository.name }}" \
-              -F "projectVersion=${{ github.ref_name }}" \
-              -F "bom=@my-app-sbom.cdx.json")
+            JSON_PAYLOAD=$(jq -n \
+              --arg name "${{ github.event.repository.name }}" \
+              --arg ver "$CLEAN_VERSION" \
+              --arg bom "$BOM_BASE64" \
+              '{autoCreate: true, projectName: $name, projectVersion: $ver, bom: $bom}')
           fi
-          
+
+          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X PUT "${TARGET_ENDPOINT}" \
+            -H "X-API-Key: ${DTRACK_API_KEY}" \
+            -H "ngrok-skip-browser-warning: true" \
+            -H "User-Agent: curl/7.68.0" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD")
+
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
           BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
 
@@ -104,7 +107,7 @@ jobs:
             echo "✅ Proses Upload SBOM ke Dependency-Track Berhasil! (HTTP ${HTTP_STATUS})"
           else
             echo "⚠️ Upload SBOM ke Dependency-Track Gagal dengan HTTP Status ${HTTP_STATUS}."
-            echo "Silakan periksa apakah service Dependency-Track dan tunnel Ngrok di lokal dalam keadaan aktif."
+            echo "Silakan periksa apakah API Key dan service Dependency-Track (port 8080) di lokal dalam keadaan aktif."
           fi
 
 
