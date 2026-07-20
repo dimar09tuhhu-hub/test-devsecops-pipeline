@@ -93,10 +93,19 @@ jobs:
               -F "bom=@my-app-sbom.cdx.json")
           fi
           
-          echo "Hasil Respon API:"
-          echo "$RESPONSE"
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
+          BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
+
+          echo "Hasil Respon API (Status: ${HTTP_STATUS}):"
+          echo "$BODY"
           echo ""
-          echo "✅ Proses Upload SBOM Selesai!"
+
+          if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+            echo "✅ Proses Upload SBOM ke Dependency-Track Berhasil! (HTTP ${HTTP_STATUS})"
+          else
+            echo "⚠️ Upload SBOM ke Dependency-Track Gagal dengan HTTP Status ${HTTP_STATUS}."
+            echo "Silakan periksa apakah service Dependency-Track dan tunnel Ngrok di lokal dalam keadaan aktif."
+          fi
 
 
       - name: Run Grype Vulnerability Scan
