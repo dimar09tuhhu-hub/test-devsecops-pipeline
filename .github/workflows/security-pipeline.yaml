@@ -45,6 +45,30 @@ jobs:
             my-app-sbom.cdx.json
             my-app-sbom.spdx.json
 
+      - name: Verify & Inspect SBOM File
+        if: always()
+        run: |
+          echo "🔍 === Step Verifikasi File SBOM ==="
+          if [ -f "my-app-sbom.cdx.json" ]; then
+            echo "✅ File 'my-app-sbom.cdx.json' ditemukan."
+            echo "📊 Ukuran file:"
+            ls -lh my-app-sbom.cdx.json
+            echo "📏 Jumlah baris:"
+            wc -l my-app-sbom.cdx.json
+            echo ""
+            echo "📋 15 Baris Pertama File SBOM:"
+            head -n 15 my-app-sbom.cdx.json
+            echo ""
+            if jq . my-app-sbom.cdx.json >/dev/null 2>&1; then
+              echo "✅ Format JSON Valid!"
+            else
+              echo "❌ ERROR: Format JSON tidak valid!"
+            fi
+          else
+            echo "❌ ERROR: File 'my-app-sbom.cdx.json' tidak ditemukan!"
+          fi
+          echo "===================================="
+
       - name: Upload CycloneDX SBOM to OWASP Dependency-Track
         if: always()
         env:
@@ -71,9 +95,9 @@ jobs:
           fi
 
           TARGET_ENDPOINT="${CLEAN_URL}/api/v1/bom"
-          echo "🚀 Mengunggah CycloneDX SBOM (JSON Base64) ke: ${TARGET_ENDPOINT}"
+          echo "🚀 Mengunggah CycloneDX SBOM ke: ${TARGET_ENDPOINT}"
 
-          # Sanitize null bytes (0x00 and \u0000) from SBOM to prevent PostgreSQL UTF8 invalid byte sequence error
+          # Sanitize null bytes (0x00 and \u0000) from SBOM to prevent PostgreSQL UTF8 error
           tr -d '\000' < my-app-sbom.cdx.json | sed 's/\\u0000//g' > my-app-sbom.cdx.clean.json
           mv my-app-sbom.cdx.clean.json my-app-sbom.cdx.json
 
@@ -103,12 +127,21 @@ jobs:
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_CODE:" | sed 's/HTTP_CODE://')
           BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
 
-          echo "Hasil Respon API (Status: ${HTTP_STATUS}):"
+          echo "🔍 === Respon API Dependency-Track ==="
+          echo "HTTP Status Code: ${HTTP_STATUS}"
+          echo "Full Response Body:"
           echo "$BODY"
+          echo "======================================"
           echo ""
 
+          TOKEN=$(echo "$BODY" | jq -r '.token // empty' 2>/dev/null)
+
           if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
-            echo "✅ Proses Upload SBOM ke Dependency-Track Berhasil! (HTTP ${HTTP_STATUS})"
+            echo "✅ Upload SBOM Berhasil! (HTTP ${HTTP_STATUS})"
+            if [ -n "$TOKEN" ]; then
+              echo "🔑 Processing Token: ${TOKEN}"
+              echo "📌 Dependency-Track sedang mengurai SBOM di latar belakang menggunakan Token di atas."
+            fi
           else
             echo "⚠️ Upload SBOM ke Dependency-Track Gagal dengan HTTP Status ${HTTP_STATUS}."
             echo "Silakan periksa apakah API Key dan service Dependency-Track (port 8080) di lokal dalam keadaan aktif."
