@@ -1,7 +1,7 @@
 {
   "name": "belajar-devsecops-pipeline",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000B\u0000e\u0000l\u0000a\u0000j\u0000a\u0000r\u0000 \u0000D\u0000e\u0000v\u0000S\u0000e\u0000c\u0000O\u0000p\u0000s\u0000\r\u0000 \u0000",
+  "description": "Belajar DevSecOps Pipeline",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,8 +11,11 @@
     "url": "git+https://github.com/dimar09tuhhu-hub/belajar-devsecops-pipeline.git"
   },
   "dependencies": {
+    "axios": "0.21.0",
     "express": "^4.19.2",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.21",
+    "minimist": "1.2.0",
+    "serialize-javascript": "2.1.1"
   },
   "keywords": [],
   "author": "",
